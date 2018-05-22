@@ -46,11 +46,11 @@ module Linear.V1
   ) where
 
 import Control.Applicative
+import Control.Comonad
 import Control.DeepSeq (NFData)
 import Control.Monad (liftM)
 import Control.Monad.Fix
 import Control.Monad.Zip
-import Control.Comonad
 import Control.Lens
 import Data.Binary as Binary
 import Data.Bytes.Serial
@@ -60,6 +60,7 @@ import Data.Distributive
 import Data.Foldable
 import Data.Functor.Bind
 import Data.Functor.Classes
+import Data.Functor.Extend
 import Data.Functor.Rep
 import Data.Hashable
 #if (MIN_VERSION_hashable(1,2,5))
@@ -179,6 +180,12 @@ instance Comonad V1 where
   {-# INLINE duplicate #-}
   extend f (V1 a) = V1 (f (V1 a))
   {-# INLINE extend #-}
+
+instance Extend V1 where
+  duplicated = duplicate
+  {-# INLINE duplicated #-}
+  extended = extend
+  {-# INLINE extended #-}
 
 instance ComonadApply V1 where
   (<@>) = (<*>)

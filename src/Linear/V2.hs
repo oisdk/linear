@@ -49,11 +49,11 @@ module Linear.V2
   ) where
 
 import Control.Applicative
+import Control.Comonad
 import Control.DeepSeq (NFData(rnf))
 import Control.Monad (liftM)
 import Control.Monad.Fix
 import Control.Monad.Zip
-import Control.Comonad
 import Control.Lens hiding ((<.>))
 import Data.Binary as Binary
 import Data.Bytes.Serial
@@ -61,6 +61,7 @@ import Data.Data
 import Data.Distributive
 import Data.Foldable
 import Data.Functor.Bind
+import Data.Functor.Extend
 import Data.Functor.Classes
 import Data.Functor.Rep
 import Data.Hashable
@@ -203,6 +204,12 @@ instance Comonad V2 where
   {-# INLINE duplicate #-}
   extend f ab@(V2 a b) = V2 (f ab) (f (V2 b a))
   {-# INLINE extend #-}
+
+instance Extend V2 where
+  extended = extend
+  {-# INLINE extended #-}
+  duplicated = duplicate
+  {-# INLINE duplicated #-}
 
 instance ComonadApply V2 where
   (<@>) = (<*>)

@@ -68,10 +68,12 @@ module Linear.V
 import Control.Applicative
 #endif
 import Control.DeepSeq (NFData)
+#ifdef USE_TYPE_LITS
+import Control.Comonad
+#endif
 import Control.Monad
 import Control.Monad.Fix
 import Control.Monad.Zip
-import Control.Comonad
 import Control.Lens as Lens
 import Data.Binary as Binary
 import Data.Bytes.Serial
@@ -83,6 +85,7 @@ import Data.Distributive
 import Data.Foldable as Foldable
 import Data.Functor.Bind
 import Data.Functor.Classes
+import Data.Functor.Extend
 import Data.Functor.Rep as Rep
 import Data.Hashable
 #if (MIN_VERSION_hashable(1,2,5))
@@ -295,23 +298,31 @@ instance Dim n => Monad (V n) where
     toVector (f (as `unsafeIndex` i)) `unsafeIndex` i
   {-# INLINE (>>=) #-}
 
-instance Comonad (V n) where
+instance Extend (V n) where
+  extended f (V xs) = V (V.generate n (\i -> f (V (V.unsafeSlice i n ys))))
+    where
+      n = V.length xs
+      ys = xs V.++ xs
+  {-# INLINE extended #-}
+  duplicated (V xs) = V (V.generate n (\i -> V (V.unsafeSlice i n ys)))
+    where
+      n = V.length xs
+      ys = xs V.++ xs
+  {-# INLINE duplicated #-}
+
+#ifdef USE_TYPE_LITS
+instance (1 <= n) => Comonad (V n) where
   extract (V xs) = V.head xs
   {-# INLINE extract #-}
-  extend f (V xs) = V (V.generate n (\i -> f (V (V.unsafeSlice i n ys))))
-    where
-      n = V.length xs
-      ys = xs V.++ xs
+  extend = extended
   {-# INLINE extend #-}
-  duplicate (V xs) = V (V.generate n (\i -> V (V.unsafeSlice i n ys)))
-    where
-      n = V.length xs
-      ys = xs V.++ xs
+  duplicate = duplicated
   {-# INLINE duplicate #-}
 
-instance ComonadApply (V n) where
+instance (1 <= n) => ComonadApply (V n) where
   V as <@> V bs = V (V.zipWith id as bs)
   {-# INLINE (<@>) #-}
+#endif
 
 instance Dim n => Additive (V n) where
   zero = pure 0
@@ -628,6 +639,7 @@ instance (Dim n, U.Unbox a) => G.Vector U.Vector (V n a) where
 vLens :: Int -> Lens' (V n a) a
 vLens i = \f (V v) -> f (v V.! i) <&> \a -> V (v V.// [(i, a)])
 {-# INLINE vLens #-}
+
 
 #ifdef USE_TYPE_LITS
 instance ( 1 <= n) => Field1  (V n a) (V n a) a a where _1  = vLens  0
