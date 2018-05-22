@@ -54,6 +54,7 @@ import Control.Monad (liftM)
 import Control.Monad.Fix
 import Control.Monad.Zip
 import Control.Lens hiding ((<.>))
+import Control.Comonad
 import Data.Binary as Binary -- binary
 import Data.Bytes.Serial -- bytes
 import Data.Data
@@ -172,6 +173,22 @@ instance Monad V3 where
     V3 _ b' _ = f b
     V3 _ _ c' = f c
   {-# INLINE (>>=) #-}
+
+instance Comonad V3 where
+  extract (V3 a _ _) = a
+  {-# INLINE extract #-}
+  duplicate abc@(V3 a b c) = V3 abc (V3 b c a) (V3 c a b)
+  {-# INLINE duplicate #-}
+  extend f abc@(V3 a b c) = V3 (f abc) (f (V3 b c a)) (f (V3 c a b))
+  {-# INLINE extend #-}
+
+instance ComonadApply V3 where
+  (<@>) = (<*>)
+  {-# INLINE (<@>) #-}
+  (<@) = (<*)
+  {-# INLINE (<@) #-}
+  (@>) = (*>)
+  {-# INLINE (@>) #-}
 
 instance Num a => Num (V3 a) where
   (+) = liftA2 (+)

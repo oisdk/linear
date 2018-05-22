@@ -59,6 +59,7 @@ import Control.DeepSeq (NFData(rnf))
 import Control.Monad (liftM)
 import Control.Monad.Fix
 import Control.Monad.Zip
+import Control.Comonad
 import Control.Lens hiding ((<.>))
 import Data.Binary as Binary
 import Data.Bytes.Serial
@@ -181,6 +182,28 @@ instance Monad V4 where
     V4 _ _ c' _ = f c
     V4 _ _ _ d' = f d
   {-# INLINE (>>=) #-}
+
+instance Comonad V4 where
+  extract (V4 a _ _ _) = a
+  {-# INLINE extract #-}
+  duplicate abcd@(V4 a b c d) = V4 abcd
+                                   (V4 b c d a)
+                                   (V4 c d a b)
+                                   (V4 d a b c)
+  {-# INLINE duplicate #-}
+  extend f abcd@(V4 a b c d) = V4 (f abcd)
+                                  (f (V4 b c d a))
+                                  (f (V4 c d a b))
+                                  (f (V4 d a b c))
+  {-# INLINE extend #-}
+
+instance ComonadApply V4 where
+  (<@>) = (<*>)
+  {-# INLINE (<@>) #-}
+  (<@) = (<*)
+  {-# INLINE (<@) #-}
+  (@>) = (*>)
+  {-# INLINE (@>) #-}
 
 instance Num a => Num (V4 a) where
   (+) = liftA2 (+)

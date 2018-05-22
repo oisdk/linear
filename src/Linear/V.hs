@@ -71,6 +71,7 @@ import Control.DeepSeq (NFData)
 import Control.Monad
 import Control.Monad.Fix
 import Control.Monad.Zip
+import Control.Comonad
 import Control.Lens as Lens
 import Data.Binary as Binary
 import Data.Bytes.Serial
@@ -293,6 +294,24 @@ instance Dim n => Monad (V n) where
   V as >>= f = V $ generate (reflectDim (Proxy :: Proxy n)) $ \i ->
     toVector (f (as `unsafeIndex` i)) `unsafeIndex` i
   {-# INLINE (>>=) #-}
+
+instance Comonad (V n) where
+  extract (V xs) = V.head xs
+  {-# INLINE extract #-}
+  extend f (V xs) = V (V.generate n (\i -> f (V (V.unsafeSlice i n ys))))
+    where
+      n = V.length xs
+      ys = xs V.++ xs
+  {-# INLINE extend #-}
+  duplicate (V xs) = V (V.generate n (\i -> V (V.unsafeSlice i n ys)))
+    where
+      n = V.length xs
+      ys = xs V.++ xs
+  {-# INLINE duplicate #-}
+
+instance ComonadApply (V n) where
+  V as <@> V bs = V (V.zipWith id as bs)
+  {-# INLINE (<@>) #-}
 
 instance Dim n => Additive (V n) where
   zero = pure 0
